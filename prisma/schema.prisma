@@ -1,30 +1,28 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["referentialIntegrity"]
 }
 
 datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
-  relationMode = "prisma" // Best for serverless environments
+  relationMode = "prisma"
 }
 
 model Lead {
-  id              String     @id @default(cuid())
-  name            String
-  email           String     @unique
-  phone           String?
-  propertyInterest String
-  source          String     // e.g., "Website", "Zillow", "Referral"
-  status          LeadStatus @default(NEW)
-  notes           Note[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id               String           @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String           @unique
+  phone            String?
+  propertyInterest PropertyInterest
+  source           LeadSource
+  transaction      TransactionType
+  status           LeadStatus       @default(NEW)
+  notes            Note[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  @@map("lead")
+  @@map("leads") // Explicitly name the table 'leads'
 }
 
 model Note {
@@ -33,9 +31,9 @@ model Note {
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   leadId    String
   createdAt DateTime @default(now())
-  
-  @@map("note")
+
   @@index([leadId])
+  @@map("notes") // Explicitly name the table 'notes'
 }
 
 enum LeadStatus {
@@ -44,4 +42,23 @@ enum LeadStatus {
   SCHEDULED_VISIT
   CLOSED
   DROPPED
+}
+
+// New Enums for the form options
+enum PropertyInterest {
+  LOT
+  CONDO
+  HOUSE
+}
+
+enum LeadSource {
+  SOCIAL_MEDIA
+  INTERNET
+  REFERRAL
+  WALK_IN
+}
+
+enum TransactionType {
+  BUYING
+  SELLING
 }

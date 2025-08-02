@@ -4,18 +4,16 @@ import { LeadsTable } from '@/components/leads-table';
 import { AddLeadDialog } from '@/components/add-lead-dialog';
 
 export default async function Home() {
-  const leads = await prisma.lead.findMany({
-    orderBy: {
-      createdAt: 'desc',
+const leads = await prisma.lead.findMany({
+  orderBy: { createdAt: 'desc' },
+  include: {
+    notes: { 
+      orderBy: {
+        createdAt: 'desc',
+      },
     },
-    include: { 
-      notes: { 
-        orderBy: { 
-          createdAt: 'desc' 
-        } 
-      } 
-    },
-  });
+  },
+});
 
   return (
     <main className="container mx-auto p-4 md:p-8">

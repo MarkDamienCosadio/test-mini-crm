@@ -1,15 +1,14 @@
-// components/lead-details-dialog.tsx
 'use client';
 
-import { Lead, LeadStatus, Note } from '@prisma/client';
+import { Lead, Note, LeadStatus } from '@prisma/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { addNoteToLead, updateLeadStatus } from '@/app/actions';
 import { useState, useTransition } from 'react';
 
-// We need to fetch notes separately
+// Define a more complete type for the lead, including all its notes
 type LeadWithNotes = Lead & { notes: Note[] };
 
 export function LeadDetailsDialog({ lead, isOpen, onClose }: { lead: LeadWithNotes, isOpen: boolean, onClose: () => void }) {
@@ -17,62 +16,72 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: { lead: LeadWithNot
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (status: LeadStatus) => {
-    startTransition(async () => {
-      await updateLeadStatus(lead.id, status);
+    startTransition(() => {
+      updateLeadStatus(lead.id, status);
     });
   };
 
   const handleAddNote = () => {
-    startTransition(async () => {
-        await addNoteToLead(lead.id, noteContent);
-        setNoteContent(''); // Clear input on success
-    })
-  }
+    if (!noteContent.trim()) return;
+    startTransition(() => {
+        addNoteToLead(lead.id, noteContent).then(() => {
+            setNoteContent(''); // Clear input on success
+        });
+    });
+  };
+
+  // Helper function to format enums like 'SOCIAL_MEDIA' into 'Social Media'
+  const formatEnumText = (text: string = ''): string => {
+    return text.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{lead.name}</DialogTitle>
+          <DialogTitle>{lead.firstName} {lead.lastName}</DialogTitle>
           <p className="text-sm text-muted-foreground">{lead.email} | {lead.phone}</p>
         </DialogHeader>
-        <div className="space-y-4">
-            {/* Status Updater */}
-            <div>
-                <h3 className="font-semibold mb-2">Status</h3>
-                <Select defaultValue={lead.status} onValueChange={handleStatusChange}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Change status..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {Object.values(LeadStatus).map(status => (
-                            <SelectItem key={status} value={status}>{status.replace('_', ' ')}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Notes Section */}
-            <div>
-                <h3 className="font-semibold mb-2">Notes</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                    {lead.notes.map(note => (
-                        <div key={note.id} className="text-sm bg-muted p-2 rounded-md">
-                            <p>{note.content}</p>
-                            <p className="text-xs text-muted-foreground">{new Date(note.createdAt).toLocaleString()}</p>
-                        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4">
+          {/* Lead Details */}
+          <div><strong>Interest:</strong> {formatEnumText(lead.propertyInterest)}</div>
+          <div><strong>Source:</strong> {formatEnumText(lead.source)}</div>
+          <div><strong>Transaction:</strong> {formatEnumText(lead.transaction)}</div>
+          <div>
+            <strong>Status:</strong>
+            <Select defaultValue={lead.status} onValueChange={handleStatusChange} disabled={isPending}>
+                <SelectTrigger className="w-[180px] mt-1">
+                    <SelectValue placeholder="Change status..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {Object.values(LeadStatus).map(status => (
+                        <SelectItem key={status} value={status}>{formatEnumText(status)}</SelectItem>
                     ))}
-                </div>
-                <div className="mt-4 flex gap-2">
-                    <Input
-                        placeholder="Add a new note..."
-                        value={noteContent}
-                        onChange={(e) => setNoteContent(e.target.value)}
-                    />
-                    <Button onClick={handleAddNote} disabled={isPending || !noteContent}>
-                        {isPending ? 'Adding...' : 'Add'}
-                    </Button>
-                </div>
+                </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Notes Section */}
+        <div className="space-y-4 pt-4 border-t">
+            <h3 className="font-semibold">Notes</h3>
+            <div className="space-y-2">
+                <Textarea
+                    placeholder="Add a new note..."
+                    value={noteContent}
+                    onChange={(e) => setNoteContent(e.target.value)}
+                />
+                <Button onClick={handleAddNote} disabled={isPending || !noteContent}>
+                    {isPending ? 'Adding...' : 'Add Note'}
+                </Button>
+            </div>
+            <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                {lead.notes.map(note => (
+                    <div key={note.id} className="text-sm bg-muted p-3 rounded-md border">
+                        <p className="whitespace-pre-wrap">{note.content}</p>
+                        <p className="text-xs text-muted-foreground mt-2">{new Date(note.createdAt).toLocaleString()}</p>
+                    </div>
+                ))}
             </div>
         </div>
       </DialogContent>

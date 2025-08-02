@@ -1,37 +1,45 @@
-// src/app/actions.ts
 'use server';
 
-import prisma from '@/lib/prisma';
-import { LeadStatus } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import prisma from '@/lib/prisma';
+import { LeadStatus, PropertyInterest, LeadSource, TransactionType } from '@prisma/client';
 
-// 1. Define the state type
 export type FormState = {
   message: string | null;
   errors?: {
-    name?: string[];
+    firstName?: string[];
+    lastName?: string[];
     email?: string[];
     propertyInterest?: string[];
     source?: string[];
+    transaction?: string[];
   };
 };
 
+// Add the optional `note` field to the schema
 const LeadSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  firstName: z.string().min(2, "First name is required."),
+  lastName: z.string().min(2, "Last name is required."),
   email: z.string().email("Invalid email address."),
   phone: z.string().optional(),
-  propertyInterest: z.string().min(3, "Property interest is required."),
-  source: z.string().min(2, "Source is required."),
+  propertyInterest: z.nativeEnum(PropertyInterest),
+  source: z.nativeEnum(LeadSource),
+  transaction: z.nativeEnum(TransactionType),
+  note: z.string().optional(),
 });
+
 
 export async function addLead(prevState: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = LeadSchema.safeParse({
-    name: formData.get('name'),
+    firstName: formData.get('firstName'),
+    lastName: formData.get('lastName'),
     email: formData.get('email'),
     phone: formData.get('phone'),
     propertyInterest: formData.get('propertyInterest'),
     source: formData.get('source'),
+    transaction: formData.get('transaction'),
+    note: formData.get('note'),
   });
 
   if (!validatedFields.success) {
@@ -41,9 +49,24 @@ export async function addLead(prevState: FormState, formData: FormData): Promise
     };
   }
 
+  // Separate the note from the rest of the lead data
+  const { note, ...leadData } = validatedFields.data;
+
   try {
-    await prisma.lead.create({
-      data: validatedFields.data,
+    // Use a transaction to create the lead and its first note together
+    await prisma.$transaction(async (tx) => {
+      const newLead = await tx.lead.create({
+        data: leadData,
+      });
+
+      if (note && note.trim().length > 0) {
+        await tx.note.create({
+          data: {
+            content: note,
+            leadId: newLead.id,
+          },
+        });
+      }
     });
 
     revalidatePath('/');
