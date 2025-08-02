@@ -5,34 +5,32 @@ import { AddLeadDialog } from '@/components/add-lead-dialog';
 import { SearchFilters } from '@/components/search-filters';
 import { LeadStatus } from '@prisma/client';
 
-type PageProps = {
-  searchParams?: {
-    query?: string;
-    status?: string;
-  };
-};
+interface SearchParams {
+  query?: string;
+  status?: string;
+}
 
-export default async function Home({ searchParams }: PageProps) {
+export default async function Home({
+  searchParams = {}
+}: {
+  searchParams?: SearchParams;
+}) {
   const query = searchParams?.query || '';
   const status = searchParams?.status || '';
 
   const leads = await prisma.lead.findMany({
     where: {
       AND: [
-        query
-          ? {
-              OR: [
-                { firstName: { contains: query, mode: 'insensitive' } },
-                { lastName: { contains: query, mode: 'insensitive' } },
-                { email: { contains: query, mode: 'insensitive' } },
-              ],
-            }
-          : {},
-        status
-          ? {
-              status: status as LeadStatus,
-            }
-          : {},
+        query ? {
+          OR: [
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { email: { contains: query, mode: 'insensitive' } },
+          ],
+        } : {},
+        status ? {
+          status: status as LeadStatus,
+        } : {},
       ],
     },
     orderBy: { createdAt: 'desc' },
@@ -56,7 +54,7 @@ export default async function Home({ searchParams }: PageProps) {
         <h1 className="text-2xl md:text-3xl font-bold">Real Estate CRM</h1>
         <AddLeadDialog />
       </div>
-
+      
       <SearchFilters />
 
       <div className="mt-4 rounded-lg border">
