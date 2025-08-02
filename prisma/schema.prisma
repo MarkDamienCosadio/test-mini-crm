@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["referentialIntegrity"]
 }
 
 datasource db {
@@ -22,6 +23,8 @@ model Lead {
   notes           Note[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  @@map("lead")
 }
 
 model Note {
@@ -30,7 +33,8 @@ model Note {
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   leadId    String
   createdAt DateTime @default(now())
-
+  
+  @@map("note")
   @@index([leadId])
 }
 

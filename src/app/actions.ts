@@ -25,7 +25,6 @@ const LeadSchema = z.object({
   source: z.string().min(2, "Source is required."),
 });
 
-// 2. Update the function signature
 export async function addLead(prevState: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = LeadSchema.safeParse({
     name: formData.get('name'),
@@ -49,12 +48,11 @@ export async function addLead(prevState: FormState, formData: FormData): Promise
 
     revalidatePath('/');
     return { message: 'Lead added successfully.' };
-  } catch (e) {
+  } catch (error) {
+    console.error('Failed to create lead:', error);
     return { message: 'Database Error: Failed to create lead.' };
   }
 }
-
-// --- NEW FUNCTIONS ADDED BELOW ---
 
 export async function updateLeadStatus(leadId: string, status: LeadStatus) {
   try {
@@ -65,14 +63,22 @@ export async function updateLeadStatus(leadId: string, status: LeadStatus) {
     revalidatePath('/');
     return { success: true };
   } catch (error) {
-    return { success: false, message: 'Failed to update status.' };
+    console.error('Failed to update lead status:', error);
+    return { 
+      success: false, 
+      message: 'Failed to update status.' 
+    };
   }
 }
 
 export async function addNoteToLead(leadId: string, content: string) {
-    if (!content || content.trim().length === 0) {
-        return { success: false, message: 'Note content cannot be empty.'}
-    }
+  if (!content || content.trim().length === 0) {
+    return { 
+      success: false, 
+      message: 'Note content cannot be empty.' 
+    };
+  }
+
   try {
     await prisma.note.create({
       data: {
@@ -83,6 +89,10 @@ export async function addNoteToLead(leadId: string, content: string) {
     revalidatePath('/'); 
     return { success: true };
   } catch (error) {
-    return { success: false, message: 'Failed to add note.' };
+    console.error('Failed to add note:', error);
+    return { 
+      success: false, 
+      message: 'Failed to add note.' 
+    };
   }
 }
