@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma" // Best for serverless environments
+}
+
+model Lead {
+  id              String     @id @default(cuid())
+  name            String
+  email           String     @unique
+  phone           String?
+  propertyInterest String
+  source          String     // e.g., "Website", "Zillow", "Referral"
+  status          LeadStatus @default(NEW)
+  notes           Note[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  SCHEDULED_VISIT
+  CLOSED
+  DROPPED
+}
