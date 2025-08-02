@@ -14,7 +14,7 @@ type LeadWithNotes = Lead & { notes: Note[] };
 
 export function LeadDetailsDialog({ lead, isOpen, onClose }: { lead: LeadWithNotes, isOpen: boolean, onClose: () => void }) {
   const [noteContent, setNoteContent] = useState('');
-  let [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (status: LeadStatus) => {
     startTransition(async () => {

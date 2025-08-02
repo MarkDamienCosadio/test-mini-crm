@@ -3,13 +3,12 @@
 import { Lead } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-// import { LeadDetailsDialog } from './lead-details-dialog'; 
 import { useState } from 'react';
 
 export function LeadsTable({ leads }: { leads: Lead[] }) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" | "success" => {
     switch (status) {
       case 'NEW': return 'default';
       case 'CONTACTED': return 'secondary';
@@ -40,7 +39,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
               <TableCell className="hidden md:table-cell">{lead.propertyInterest}</TableCell>
               <TableCell className="hidden lg:table-cell">{lead.source}</TableCell>
               <TableCell>
-                <Badge variant={getStatusVariant(lead.status) as any}>{lead.status.replace('_', ' ')}</Badge>
+                <Badge variant={getStatusVariant(lead.status)}>{lead.status.replace('_', ' ')}</Badge>
               </TableCell>
             </TableRow>
           ))}
