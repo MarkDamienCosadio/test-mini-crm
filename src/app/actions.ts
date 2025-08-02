@@ -3,21 +3,24 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { LeadStatus, PropertyInterest, LeadSource, TransactionType } from '@prisma/client';
+import { LeadStatus, PropertyInterest, LeadSource, TransactionType, Appointment } from '@prisma/client';
 
-export type FormState = {
+type FormState = {
   message: string | null;
+  errors?: Record<string, string[]>;
+};
+
+export type AppointmentFormState = {
+  message: string | null;
+  appointment?: Appointment;
   errors?: {
-    firstName?: string[];
-    lastName?: string[];
-    email?: string[];
-    propertyInterest?: string[];
-    source?: string[];
-    transaction?: string[];
+    title?: string[];
+    startTime?: string[];
+    duration?: string[];
+    leadId?: string[];
   };
 };
 
-// Add the optional `note` field to the schema
 const LeadSchema = z.object({
   firstName: z.string().min(2, "First name is required."),
   lastName: z.string().min(2, "Last name is required."),
@@ -29,6 +32,12 @@ const LeadSchema = z.object({
   note: z.string().optional(),
 });
 
+const AppointmentSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters."),
+  startTime: z.coerce.date({ message: "Invalid date format." }),
+  duration: z.coerce.number().min(15, "Duration must be at least 15 minutes."),
+  leadId: z.string(),
+});
 
 export async function addLead(prevState: FormState, formData: FormData): Promise<FormState> {
   const validatedFields = LeadSchema.safeParse({
@@ -49,11 +58,9 @@ export async function addLead(prevState: FormState, formData: FormData): Promise
     };
   }
 
-  // Separate the note from the rest of the lead data
   const { note, ...leadData } = validatedFields.data;
 
   try {
-    // Use a transaction to create the lead and its first note together
     await prisma.$transaction(async (tx) => {
       const newLead = await tx.lead.create({
         data: leadData,
@@ -96,26 +103,65 @@ export async function updateLeadStatus(leadId: string, status: LeadStatus) {
 
 export async function addNoteToLead(leadId: string, content: string) {
   if (!content || content.trim().length === 0) {
-    return { 
-      success: false, 
-      message: 'Note content cannot be empty.' 
-    };
+    throw new Error('Note content cannot be empty.');
   }
 
   try {
-    await prisma.note.create({
+    const note = await prisma.note.create({
       data: {
         leadId,
         content,
       },
     });
-    revalidatePath('/'); 
-    return { success: true };
+    revalidatePath('/');
+    return note; // Return the created note directly
   } catch (error) {
     console.error('Failed to add note:', error);
+    throw new Error('Failed to add note.');
+  }
+}
+
+export async function createAppointment(
+  prevState: AppointmentFormState, 
+  formData: FormData
+): Promise<AppointmentFormState> {
+  const validatedFields = AppointmentSchema.safeParse({
+    title: formData.get('title'),
+    startTime: formData.get('startTime'),
+    duration: formData.get('duration'),
+    leadId: formData.get('leadId'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      message: 'Validation failed.',
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { title, startTime, duration, leadId } = validatedFields.data;
+  const endTime = new Date(new Date(startTime).getTime() + duration * 60000);
+
+  try {
+    const appointment = await prisma.appointment.create({
+      data: {
+        title,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        leadId,
+      },
+    });
+
+    revalidatePath('/');
     return { 
-      success: false, 
-      message: 'Failed to add note.' 
+      message: 'Appointment created successfully.',
+      appointment // Include the created appointment
+    };
+  } catch (error) {
+    console.error(error);
+    return { 
+      message: 'Database Error: Failed to create appointment.',
+      errors: {} // Include empty errors object to match type
     };
   }
 }

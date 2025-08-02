@@ -1,20 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Lead, Note, LeadStatus } from '@prisma/client';
+import { Lead, Note, LeadStatus, Appointment } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LeadDetailsDialog } from './lead-details-dialog';
 
-// This is the correct type definition
-type LeadWithNotes = Lead & {
+type LeadWithDetails = Lead & {
   notes: Note[];
+  appointments: Appointment[];
 };
 
-export function LeadsTable({ leads }: { leads: LeadWithNotes[] }) {
-  // Use the correct type here for the selected lead state
-  const [selectedLead, setSelectedLead] = useState<LeadWithNotes | null>(null);
+export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
+  const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
 
   const getStatusVariant = (status: LeadStatus): "default" | "secondary" | "destructive" | "outline" | "success" => {
     switch (status) {
@@ -32,6 +32,16 @@ export function LeadsTable({ leads }: { leads: LeadWithNotes[] }) {
     ).join(' ');
   };
 
+  const handleRowClick = (lead: LeadWithDetails) => {
+    setSelectedLead(lead);
+    setIsLeadDetailsOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setIsLeadDetailsOpen(false);
+    setSelectedLead(null);
+  };
+
   return (
     <>
       <div className="rounded-lg border">
@@ -40,6 +50,7 @@ export function LeadsTable({ leads }: { leads: LeadWithNotes[] }) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead className="hidden lg:table-cell">Email</TableHead>
+              <TableHead className="hidden xl:table-cell">Phone</TableHead>
               <TableHead className="hidden md:table-cell">Latest Note</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -53,7 +64,7 @@ export function LeadsTable({ leads }: { leads: LeadWithNotes[] }) {
                   <div className="text-sm text-muted-foreground lg:hidden">{lead.email}</div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">{lead.email}</TableCell>
-                {/* Use the notes array here to get the latest note */}
+                <TableCell className="hidden xl:table-cell">{lead.phone ?? 'N/A'}</TableCell>
                 <TableCell className="hidden md:table-cell max-w-xs truncate">
                   {lead.notes[0]?.content ?? 'No notes yet'}
                 </TableCell>
@@ -61,7 +72,11 @@ export function LeadsTable({ leads }: { leads: LeadWithNotes[] }) {
                   <Badge variant={getStatusVariant(lead.status)}>{formatEnumText(lead.status)}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="outline" size="sm" onClick={() => setSelectedLead(lead)}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleRowClick(lead)}
+                  >
                     View
                   </Button>
                 </TableCell>
@@ -74,8 +89,8 @@ export function LeadsTable({ leads }: { leads: LeadWithNotes[] }) {
       {selectedLead && (
         <LeadDetailsDialog
           lead={selectedLead}
-          isOpen={!!selectedLead}
-          onClose={() => setSelectedLead(null)}
+          isOpen={isLeadDetailsOpen}
+          onClose={handleDialogClose}
         />
       )}
     </>

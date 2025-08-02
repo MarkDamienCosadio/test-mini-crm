@@ -7,13 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addLead, FormState } from '@/app/actions';
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { PropertyInterest, LeadSource, TransactionType } from '@prisma/client';
 
 const initialState: FormState = { message: null, errors: {} };
 
-// The SubmitButton needs to be defined
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -24,7 +23,7 @@ function SubmitButton() {
 }
 
 export function AddLeadDialog() {
-  const [state, dispatch] = useFormState(addLead, initialState);
+  const [state, dispatch] = useActionState(addLead, initialState);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {

@@ -19,6 +19,7 @@ model Lead {
   transaction      TransactionType
   status           LeadStatus       @default(NEW)
   notes            Note[]
+  appointments     Appointment[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -34,6 +35,19 @@ model Note {
 
   @@index([leadId])
   @@map("notes") // Explicitly name the table 'notes'
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId    String
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@map("appointments")
 }
 
 enum LeadStatus {
