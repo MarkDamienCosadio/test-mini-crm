@@ -9,7 +9,6 @@ import { LeadDetailsDialog } from './lead-details-dialog';
 
 type LeadWithDetails = Lead & {
   notes: Note[];
-  appointments: Appointment[];
 };
 
 export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {

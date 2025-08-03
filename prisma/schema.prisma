@@ -47,7 +47,6 @@ model Appointment {
   createdAt DateTime @default(now())
 
   @@index([leadId])
-  @@map("appointments")
 }
 
 enum LeadStatus {
@@ -58,7 +57,6 @@ enum LeadStatus {
   DROPPED
 }
 
-// New Enums for the form options
 enum PropertyInterest {
   LOT
   CONDO

@@ -1,22 +1,16 @@
-// src/app/page.tsx
 import prisma from '@/lib/prisma';
 import { LeadsTable } from '@/components/leads-table';
 import { AddLeadDialog } from '@/components/add-lead-dialog';
 import { SearchFilters } from '@/components/search-filters';
 import { LeadStatus } from '@prisma/client';
 
-interface SearchParams {
-  query?: string;
-  status?: string;
-}
-
 export default async function Home({
-  searchParams = {}
+  searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const query = searchParams?.query || '';
-  const status = searchParams?.status || '';
+  const query = typeof searchParams.query === 'string' ? searchParams.query : '';
+  const status = typeof searchParams.status === 'string' ? searchParams.status : '';
 
   const leads = await prisma.lead.findMany({
     where: {
@@ -35,16 +29,8 @@ export default async function Home({
     },
     orderBy: { createdAt: 'desc' },
     include: {
-      notes: {
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
-      appointments: {
-        orderBy: {
-          startTime: 'asc',
-        },
-      },
+      notes: { orderBy: { createdAt: 'desc' } },
+      appointments: { orderBy: { startTime: 'asc' } },
     },
   });
 
