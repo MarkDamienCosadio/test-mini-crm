@@ -77,7 +77,7 @@ export async function addNoteToLead(leadId: string, content: string) {
       },
     });
     revalidatePath('/');
-    return newNote; // Return the created note object
+    return newNote; 
   } catch (error) {
     throw new Error('Database Error: Failed to add note.');
   }

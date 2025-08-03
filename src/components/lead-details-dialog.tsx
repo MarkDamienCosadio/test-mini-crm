@@ -32,10 +32,12 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
   const [noteContent, setNoteContent] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  
+  // 1. Local state to manage notes for optimistic updates
+  const [displayedNotes, setDisplayedNotes] = useState<Note[]>(lead.notes);
 
-   const [displayedNotes, setDisplayedNotes] = useState<Note[]>(lead.notes);
-
-    useEffect(() => {
+  // 2. Sync local state when the lead prop changes
+  useEffect(() => {
     setDisplayedNotes(lead.notes);
   }, [lead.notes]);
 
@@ -44,11 +46,13 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
       updateLeadStatus(lead.id, status).then(() => router.refresh());
     });
   };
-
+  
+  // 3. Optimistic update logic for adding a note
   const handleAddNote = () => {
     if (!noteContent.trim()) return;
-        const tempId = `temp-${Date.now()}`;
-      const optimisticNote: Note = {
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticNote: Note = {
       id: tempId,
       content: noteContent,
       leadId: lead.id,
@@ -62,7 +66,7 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
       try {
         const newNote = await addNoteToLead(lead.id, optimisticNote.content);
         setDisplayedNotes(prevNotes => 
-          prevNotes.map(note => note.id === tempId ? newNote : note)
+          prevNotes.map(note => (note.id === tempId ? newNote : note))
         );
       } catch (error) {
         console.error("Failed to save note:", error);
@@ -114,13 +118,12 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
             </Button>
           </div>
           <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-            {/* 4. Render the notes from the local state */}
+            {/* 4. Render from local state, not the prop */}
             {displayedNotes.map(note => (
               <div key={note.id} className="text-sm bg-muted p-3 rounded-md border">
                 <p className="whitespace-pre-wrap">{note.content}</p>
                 <p className="text-xs text-muted-foreground mt-2">
                   {new Date(note.createdAt).toLocaleString()}
-                  {/* 5. Add a visual indicator for notes being saved */}
                   {note.id.startsWith('temp-') && ' (Saving...)'}
                 </p>
               </div>
