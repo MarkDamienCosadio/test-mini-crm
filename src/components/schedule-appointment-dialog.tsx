@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { createAppointment, AppointmentFormState } from '@/app/actions';
+import { Appointment } from '@prisma/client';
 import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 
@@ -16,13 +17,13 @@ function SubmitButton() {
   return <Button type="submit" aria-disabled={pending}>{pending ? 'Scheduling...' : 'Schedule'}</Button>;
 }
 
-export function ScheduleAppointmentDialog({ leadId, isOpen, onClose, onSuccess }: { leadId: string; isOpen: boolean; onClose: () => void; onSuccess: () => void; }) {
+export function ScheduleAppointmentDialog({ leadId, isOpen, onClose, onSuccess }: { leadId: string; isOpen: boolean; onClose: () => void; onSuccess: (newAppointment: Appointment) => void; }) {
   const [state, dispatch] = useActionState(createAppointment, initialState);
   const [date, setDate] = useState<Date | undefined>(new Date());
   
   useEffect(() => {
-    if (state.message?.includes('successfully')) {
-      onSuccess();
+    if (state.message?.includes('successfully') && state.appointment) {
+      onSuccess(state.appointment);
       onClose();
     }
   }, [state, onSuccess, onClose]);

@@ -23,7 +23,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
   const [schedulingLead, setSchedulingLead] = useState<LeadWithDetails | null>(null);
   const [showScheduleSuccess, setShowScheduleSuccess] = useState<LeadWithDetails | null>(null);
   const [showCancelSuccess, setShowCancelSuccess] = useState<LeadWithDetails | null>(null);
-  const [showNoteSuccess, setShowNoteSuccess] = useState<LeadWithDetails | null>(null); // New state for note success
   const router = useRouter();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -94,22 +93,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
       setSelectedLead(updatedLead);
     }
     setShowCancelSuccess(null);
-  };
-
-  // New handler for when a note is successfully added
-  const handleNoteSuccess = () => {
-    router.refresh();
-    setShowNoteSuccess(selectedLead); // Remember the lead
-    setSelectedLead(null); // Close the details dialog
-  };
-
-  // New handler to close the note success dialog and re-open details
-  const handleNoteSuccessClose = () => {
-    const updatedLead = leads.find(lead => lead.id === showNoteSuccess?.id);
-    if (updatedLead) {
-      setSelectedLead(updatedLead);
-    }
-    setShowNoteSuccess(null);
   };
 
   return (
@@ -193,9 +176,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
           lead={selectedLead}
           isOpen={!!selectedLead}
           onClose={() => setSelectedLead(null)}
-          onSchedule={handleScheduleClick}
-          onCancelSuccess={handleCancelSuccess}
-          onNoteSuccess={handleNoteSuccess} // Pass the new handler
         />
       )}
 
@@ -223,15 +203,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
           onClose={handleCancelSuccessClose}
           title="Appointment Canceled"
           description="The appointment has been successfully canceled."
-        />
-      )}
-      
-      {showNoteSuccess && (
-        <SuccessDialog
-          isOpen={!!showNoteSuccess}
-          onClose={handleNoteSuccessClose}
-          title="Note Added"
-          description="The new note has been successfully saved."
         />
       )}
     </>

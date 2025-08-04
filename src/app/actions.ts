@@ -67,19 +67,16 @@ export async function updateLeadStatus(leadId: string, status: LeadStatus) {
 
 export async function addNoteToLead(leadId: string, content: string) {
   if (!content || content.trim().length === 0) {
-    return { success: false, message: 'Note content cannot be empty.' };
+    throw new Error('Note content cannot be empty.');
   }
   try {
-    await prisma.note.create({
-      data: {
-        leadId,
-        content,
-      },
+    const newNote = await prisma.note.create({
+      data: { leadId, content },
     });
     revalidatePath('/');
-    return { success: true };
+    return newNote; // Return the created note object
   } catch (error) {
-    return { success: false, message: 'Failed to add note.' };
+    throw new Error('Database Error: Failed to add note.');
   }
 }
 
@@ -90,6 +87,7 @@ export type AppointmentFormState = {
     startTime?: string[];
     duration?: string[];
   };
+  appointment?: Appointment; // Add this line
 };
 
 const AppointmentSchema = z.object({
@@ -107,9 +105,10 @@ export async function createAppointment(prevState: AppointmentFormState, formDat
   const { title, startTime, duration, leadId } = validatedFields.data;
   const endTime = new Date(startTime.getTime() + duration * 60000);
   try {
-    await prisma.appointment.create({ data: { title, startTime, endTime, leadId } });
+    const newAppointment = await prisma.appointment.create({ data: { title, startTime, endTime, leadId } });
     revalidatePath('/');
-    return { message: 'Appointment created successfully.' };
+    // Return a success message AND the new appointment
+    return { message: 'Appointment created successfully.', appointment: newAppointment };
   } catch (error) {
     return { message: 'Database Error: Failed to create appointment.' };
   }
