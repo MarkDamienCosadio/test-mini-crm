@@ -76,7 +76,7 @@ export function LeadDetailsDialog({
         addNoteToLead(localLead.id, noteContent).then((newNote) => {
             setLocalLead(prevLead => ({
                 ...prevLead,
-                notes: [...prevLead.notes, newNote]
+                notes: [newNote, ...prevLead.notes ]
             }));
             setNoteContent('');
             toast.success("Note added successfully.");
