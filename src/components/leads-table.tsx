@@ -18,7 +18,8 @@ type LeadWithDetails = Lead & {
   appointments: Appointment[];
 };
 
-export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
+export function LeadsTable({ leads: initialLeads }: { leads: LeadWithDetails[] }) {
+  const [leads, setLeads] = useState<LeadWithDetails[]>(initialLeads);
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
   const [schedulingLead, setSchedulingLead] = useState<LeadWithDetails | null>(null);
   const [showScheduleSuccess, setShowScheduleSuccess] = useState(false);
@@ -26,6 +27,11 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Update local leads when initialLeads changes
+  useEffect(() => {
+    setLeads(initialLeads);
+  }, [initialLeads]);
 
   const filteredLeads = useMemo(() => {
     return leads
@@ -43,15 +49,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
         );
       });
   }, [leads, searchTerm, statusFilter]);
-
-  useEffect(() => {
-    if (selectedLead) {
-      const freshLeadData = leads.find(lead => lead.id === selectedLead.id);
-      if (freshLeadData) {
-        setSelectedLead(freshLeadData);
-      }
-    }
-  }, [leads]);
 
   const getStatusVariant = (status: LeadStatus): "default" | "secondary" | "destructive" | "outline" | "success" => {
     switch (status) {
@@ -75,25 +72,55 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
     setSchedulingLead(leadToSchedule);
   };
 
-  const handleScheduleSuccess = () => {
+  const handleScheduleSuccess = (newAppointment: Appointment) => {
     router.refresh();
-    const updatedLead = leads.find(lead => lead.id === schedulingLead?.id);
-    if (updatedLead) {
-      setSelectedLead(updatedLead);
-    }
+    // Update local state immediately
+    setLeads(prevLeads => 
+      prevLeads.map(lead => 
+        lead.id === schedulingLead?.id 
+          ? {...lead, appointments: [...lead.appointments, newAppointment]} 
+          : lead
+      )
+    );
     setShowScheduleSuccess(true);
     setSchedulingLead(null);
   };
 
   const handleSuccessClose = () => {
     setShowScheduleSuccess(false);
+    // Reopen the lead details with updated data
+    if (schedulingLead) {
+      const updatedLead = leads.find(lead => lead.id === schedulingLead.id);
+      if (updatedLead) setSelectedLead(updatedLead);
+    }
   };
 
   const handleCancelSuccess = () => {
     router.refresh();
-    const updatedLead = leads.find(lead => lead.id === selectedLead?.id);
-    if (updatedLead) {
-      setSelectedLead(updatedLead);
+    // Update local state immediately
+    if (selectedLead) {
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === selectedLead.id 
+            ? {...lead, appointments: []} 
+            : lead
+        )
+      );
+      const updatedLead = leads.find(lead => lead.id === selectedLead.id);
+      if (updatedLead) setSelectedLead(updatedLead);
+    }
+  };
+
+  const handleStatusChange = (leadId: string, newStatus: LeadStatus) => {
+    setLeads(prevLeads => 
+      prevLeads.map(lead => 
+        lead.id === leadId 
+          ? {...lead, status: newStatus} 
+          : lead
+      )
+    );
+    if (selectedLead?.id === leadId) {
+      setSelectedLead({...selectedLead, status: newStatus});
     }
   };
 
@@ -175,6 +202,7 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
           onClose={() => setSelectedLead(null)}
           onScheduleClick={handleScheduleClick}
           onCancelSuccess={handleCancelSuccess}
+          onStatusChange={handleStatusChange}
         />
       )}
 

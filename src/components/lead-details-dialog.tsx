@@ -31,6 +31,7 @@ interface LeadDetailsDialogProps {
   onClose: () => void;
   onScheduleClick: (lead: LeadWithDetails) => void;
   onCancelSuccess: () => void;
+  onStatusChange: (leadId: string, newStatus: LeadStatus) => void;
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
