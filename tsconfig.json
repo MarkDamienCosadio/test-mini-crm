@@ -7,8 +7,8 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "commonjs", // Changed from "esnext" for seed compatibility
+    "moduleResolution": "node", // Changed from "bundler" for better Node compatibility
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -22,8 +22,18 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/components/*": ["./src/components/*"]
-    }
+    },
+    "types": ["node"] // Added for Node.js type support
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "prisma/seed.ts" // Explicitly include seed file
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

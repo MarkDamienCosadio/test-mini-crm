@@ -1,36 +1,13 @@
 import prisma from '@/lib/prisma';
 import { LeadsTable } from '@/components/leads-table';
 import { AddLeadDialog } from '@/components/add-lead-dialog';
-import { SearchFilters } from '@/components/search-filters';
-import { LeadStatus } from '@prisma/client';
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const query = typeof searchParams.query === 'string' ? searchParams.query : '';
-  const status = typeof searchParams.status === 'string' ? searchParams.status : '';
-
+export default async function Home() {
+  // This now fetches all leads without any filtering.
   const leads = await prisma.lead.findMany({
-    where: {
-      AND: [
-        query ? {
-          OR: [
-            { firstName: { contains: query, mode: 'insensitive' } },
-            { lastName: { contains: query, mode: 'insensitive' } },
-            { email: { contains: query, mode: 'insensitive' } },
-          ],
-        } : {},
-        status ? {
-          status: status as LeadStatus,
-        } : {},
-      ],
-    },
     orderBy: { createdAt: 'desc' },
     include: {
       notes: { orderBy: { createdAt: 'desc' } },
-      appointments: { orderBy: { startTime: 'asc' } },
     },
   });
 
@@ -41,8 +18,7 @@ export default async function Home({
         <AddLeadDialog />
       </div>
       
-      <SearchFilters />
-
+      {/* The SearchFilters component is removed from here */}
       <div className="mt-4 rounded-lg border">
         <LeadsTable leads={leads} />
       </div>
