@@ -1,13 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-// UPDATE: Import useEffect to sync props with state
 import { useState, useTransition, useEffect } from 'react';
-import { Lead, Note, LeadStatus, Appointment } from '@prisma/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { Lead, Note, Appointment, LeadStatus } from '@prisma/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from './ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +18,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { addNoteToLead, updateLeadStatus, cancelAppointments } from '@/app/actions';
-import { ScheduleAppointmentDialog } from './schedule-appointment-dialog';
 import { toast } from "sonner";
 
 type LeadWithDetails = Lead & {
@@ -31,9 +29,8 @@ interface LeadDetailsDialogProps {
   lead: LeadWithDetails;
   isOpen: boolean;
   onClose: () => void;
-  // UPDATE: These props are no longer needed as the dialog manages its own state updates
-  // onSchedule: (lead: LeadWithDetails) => void;
-  // onCancelSuccess: () => void;
+  onScheduleClick: (lead: LeadWithDetails) => void;
+  onCancelSuccess: () => void;
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
@@ -45,24 +42,25 @@ function DetailItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-// UPDATE: The props are simplified
-export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogProps) {
-  // UPDATE: 1. Introduce local state to manage the lead details for instant UI updates.
+export function LeadDetailsDialog({
+  lead,
+  isOpen,
+  onClose,
+  onScheduleClick,
+  onCancelSuccess,
+}: LeadDetailsDialogProps) {  
   const [localLead, setLocalLead] = useState<LeadWithDetails>(lead);
   const [noteContent, setNoteContent] = useState('');
-  const [isScheduling, setIsScheduling] = useState(false);
   const [showCancelWarning, setShowCancelWarning] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  // UPDATE: 2. Add an effect to re-sync the local state if the lead prop changes (e.g., user opens a different lead).
   useEffect(() => {
     setLocalLead(lead);
   }, [lead]);
-  
+   
   const handleStatusChange = (status: LeadStatus) => {
     startTransition(() => {
-      // Optimistically update the local state
       setLocalLead(prev => ({...prev, status: status}));
       updateLeadStatus(localLead.id, status).then(() => {
         toast.success("Status updated.");
@@ -75,42 +73,28 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
     if (!noteContent.trim()) return;
     startTransition(() => {
         addNoteToLead(localLead.id, noteContent).then((newNote) => {
-            // UPDATE: 3. On success, update the local state with the new note for an instant UI change.
             setLocalLead(prevLead => ({
                 ...prevLead,
                 notes: [...prevLead.notes, newNote]
             }));
             setNoteContent('');
             toast.success("Note added successfully.");
-            // We can still refresh in the background to ensure consistency
             router.refresh(); 
         });
     });
   };
 
-  // UPDATE: 4. The success handler now receives the new appointment and updates local state.
-  const handleScheduleSuccess = (newAppointment: Appointment) => {
-    setLocalLead(prevLead => ({
-        ...prevLead,
-        appointments: [newAppointment] // Assuming one active appointment at a time
-    }));
-    setIsScheduling(false);
-    toast.success("Appointment Set!", { description: "The appointment has been successfully scheduled." });
-    router.refresh();
-  };
-  
   const handleCancelAppointments = () => {
-    // UPDATE: 5. Optimistically clear the appointments from the UI.
     const originalAppointments = localLead.appointments;
     setLocalLead(prev => ({...prev, appointments: []}));
-    setShowCancelWarning(false); // Close the warning dialog immediately
+    setShowCancelWarning(false);
 
     startTransition(async () => {
       const result = await cancelAppointments(localLead.id);
       if (result.success) {
         toast.success("Appointment Canceled", { description: "The appointment has been successfully canceled." });
+        onCancelSuccess();
       } else {
-        // If it fails, revert the state and show an error
         setLocalLead(prev => ({...prev, appointments: originalAppointments}));
         toast.error("Failed to cancel appointment.");
       }
@@ -118,19 +102,14 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
     });
   };
 
-  const handleScheduleClick = () => {
-    if (localLead.appointments.length > 0) {
-      setShowCancelWarning(true);
-    } else {
-      setIsScheduling(true);
-    }
-  };
+const handleScheduleClick = () => {
+  onScheduleClick(localLead);
+};
 
   const formatEnumText = (text: string = ''): string => {
     return text.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
   };
 
-  // UPDATE: 6. All JSX now reads from `localLead` state instead of the `lead` prop.
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -177,7 +156,7 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
                       })}
                     </p>
                   </div>
-                  <Button variant="destructive" size="sm" onClick={handleCancelAppointments}>
+                  <Button variant="destructive" size="sm" onClick={() => setShowCancelWarning(true)}>
                     Cancel
                   </Button>
                 </div>
@@ -232,13 +211,6 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <ScheduleAppointmentDialog
-        leadId={localLead.id}
-        isOpen={isScheduling}
-        onClose={() => setIsScheduling(false)}
-        onSuccess={handleScheduleSuccess}
-      />
     </>
   );
 }

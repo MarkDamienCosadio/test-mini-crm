@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lead, Note, LeadStatus, Appointment } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -21,8 +21,7 @@ type LeadWithDetails = Lead & {
 export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
   const [schedulingLead, setSchedulingLead] = useState<LeadWithDetails | null>(null);
-  const [showScheduleSuccess, setShowScheduleSuccess] = useState<LeadWithDetails | null>(null);
-  const [showCancelSuccess, setShowCancelSuccess] = useState<LeadWithDetails | null>(null);
+  const [showScheduleSuccess, setShowScheduleSuccess] = useState(false);
   const router = useRouter();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +43,15 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
         );
       });
   }, [leads, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (selectedLead) {
+      const freshLeadData = leads.find(lead => lead.id === selectedLead.id);
+      if (freshLeadData) {
+        setSelectedLead(freshLeadData);
+      }
+    }
+  }, [leads]);
 
   const getStatusVariant = (status: LeadStatus): "default" | "secondary" | "destructive" | "outline" | "success" => {
     switch (status) {
@@ -69,30 +77,26 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
 
   const handleScheduleSuccess = () => {
     router.refresh();
-    setShowScheduleSuccess(schedulingLead);
+    const updatedLead = leads.find(lead => lead.id === schedulingLead?.id);
+    if (updatedLead) {
+      setSelectedLead(updatedLead);
+    }
+    setShowScheduleSuccess(true);
     setSchedulingLead(null);
   };
 
   const handleSuccessClose = () => {
-    const updatedLead = leads.find(lead => lead.id === showScheduleSuccess?.id);
-    if (updatedLead) {
-      setSelectedLead(updatedLead);
-    }
-    setShowScheduleSuccess(null);
+    setShowScheduleSuccess(false);
   };
 
   const handleCancelSuccess = () => {
     router.refresh();
-    setShowCancelSuccess(selectedLead);
-    setSelectedLead(null);
-  };
-
-  const handleCancelSuccessClose = () => {
-    const updatedLead = leads.find(lead => lead.id === showCancelSuccess?.id);
+    // No longer need to show success popup or close the dialog
+    // Just refresh the data and keep the dialog open
+    const updatedLead = leads.find(lead => lead.id === selectedLead?.id);
     if (updatedLead) {
       setSelectedLead(updatedLead);
     }
-    setShowCancelSuccess(null);
   };
 
   return (
@@ -131,8 +135,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead className="hidden lg:table-cell">Email</TableHead>
-              <TableHead className="hidden xl:table-cell">Phone</TableHead>
-              <TableHead className="hidden md:table-cell">Latest Note</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -146,10 +148,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
                     <div className="text-sm text-muted-foreground lg:hidden">{lead.email}</div>
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">{lead.email}</TableCell>
-                  <TableCell className="hidden xl:table-cell">{lead.phone ?? 'N/A'}</TableCell>
-                  <TableCell className="hidden md:table-cell max-w-xs truncate">
-                    {lead.notes[0]?.content ?? 'No notes yet'}
-                  </TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(lead.status)}>{formatEnumText(lead.status)}</Badge>
                   </TableCell>
@@ -173,9 +171,12 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
 
       {selectedLead && (
         <LeadDetailsDialog
+          key={selectedLead.id}
           lead={selectedLead}
           isOpen={!!selectedLead}
           onClose={() => setSelectedLead(null)}
+          onScheduleClick={handleScheduleClick}
+          onCancelSuccess={handleCancelSuccess}
         />
       )}
 
@@ -190,19 +191,10 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
 
       {showScheduleSuccess && (
         <SuccessDialog
-          isOpen={!!showScheduleSuccess}
+          isOpen={showScheduleSuccess}
           onClose={handleSuccessClose}
           title="Appointment Set!"
-          description="Your appointment has been successfully scheduled."
-        />
-      )}
-
-      {showCancelSuccess && (
-        <SuccessDialog
-          isOpen={!!showCancelSuccess}
-          onClose={handleCancelSuccessClose}
-          title="Appointment Canceled"
-          description="The appointment has been successfully canceled."
+          description="The new appointment has been successfully scheduled."
         />
       )}
     </>
