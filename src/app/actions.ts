@@ -67,19 +67,19 @@ export async function updateLeadStatus(leadId: string, status: LeadStatus) {
 
 export async function addNoteToLead(leadId: string, content: string) {
   if (!content || content.trim().length === 0) {
-    throw new Error('Note content cannot be empty.');
+    return { success: false, message: 'Note content cannot be empty.' };
   }
   try {
-    const newNote = await prisma.note.create({
+    await prisma.note.create({
       data: {
         leadId,
         content,
       },
     });
     revalidatePath('/');
-    return newNote; 
+    return { success: true };
   } catch (error) {
-    throw new Error('Database Error: Failed to add note.');
+    return { success: false, message: 'Failed to add note.' };
   }
 }
 
@@ -124,6 +124,3 @@ export async function cancelAppointments(leadId: string) {
     return { success: false, message: 'Database error.' };
   }
 }
-
-
-

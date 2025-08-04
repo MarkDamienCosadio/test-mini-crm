@@ -1,13 +1,14 @@
 import prisma from '@/lib/prisma';
 import { LeadsTable } from '@/components/leads-table';
 import { AddLeadDialog } from '@/components/add-lead-dialog';
+import { LeadStatus } from '@prisma/client';
 
 export default async function Home() {
-  // This now fetches all leads without any filtering.
   const leads = await prisma.lead.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
       notes: { orderBy: { createdAt: 'desc' } },
+      appointments: { orderBy: { startTime: 'asc' } },
     },
   });
 
@@ -18,7 +19,6 @@ export default async function Home() {
         <AddLeadDialog />
       </div>
       
-      {/* The SearchFilters component is removed from here */}
       <div className="mt-4 rounded-lg border">
         <LeadsTable leads={leads} />
       </div>
