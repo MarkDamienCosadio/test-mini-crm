@@ -91,8 +91,6 @@ export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
 
   const handleCancelSuccess = () => {
     router.refresh();
-    // No longer need to show success popup or close the dialog
-    // Just refresh the data and keep the dialog open
     const updatedLead = leads.find(lead => lead.id === selectedLead?.id);
     if (updatedLead) {
       setSelectedLead(updatedLead);
