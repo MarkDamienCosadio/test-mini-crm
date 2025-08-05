@@ -3,6 +3,8 @@ import { LeadsTable } from '@/components/leads-table';
 import { AddLeadDialog } from '@/components/add-lead-dialog';
 import { LeadStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const leads = await prisma.lead.findMany({
     orderBy: { createdAt: 'desc' },
