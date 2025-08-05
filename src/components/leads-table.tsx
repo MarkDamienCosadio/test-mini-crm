@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
 import { Lead, Note, LeadStatus, Appointment } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,29 +9,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LeadDetailsDialog } from './lead-details-dialog';
-import { ScheduleAppointmentDialog } from './schedule-appointment-dialog';
-import { SuccessDialog } from './success-dialog';
 
 type LeadWithDetails = Lead & {
   notes: Note[];
   appointments: Appointment[];
 };
 
-export function LeadsTable({ leads: initialLeads }: { leads: LeadWithDetails[] }) {
-  const [leads, setLeads] = useState<LeadWithDetails[]>(initialLeads);
+export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
+  // UPDATE: State management is now much simpler.
+  // We only need to know which lead is selected.
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
-  const [schedulingLead, setSchedulingLead] = useState<LeadWithDetails | null>(null);
-  const [showScheduleSuccess, setShowScheduleSuccess] = useState(false);
-  const [scheduledLeadId, setScheduledLeadId] = useState<string | null>(null);
-  const router = useRouter();
-  
+
+  // Search and filter state remains the same.
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  useEffect(() => {
-    setLeads(initialLeads);
-  }, [initialLeads]);
-
+  // Client-side filtering logic remains the same.
   const filteredLeads = useMemo(() => {
     return leads
       .filter(lead => {
@@ -65,67 +57,6 @@ export function LeadsTable({ leads: initialLeads }: { leads: LeadWithDetails[] }
     return text.split('_').map(word => 
       word.charAt(0) + word.slice(1).toLowerCase()
     ).join(' ');
-  };
-
-  const handleScheduleClick = (leadToSchedule: LeadWithDetails) => {
-    setSelectedLead(null);
-    setSchedulingLead(leadToSchedule);
-    setScheduledLeadId(leadToSchedule.id);
-  };
-
-  const handleScheduleSuccess = (newAppointment: Appointment) => {
-    router.refresh();
-    // Update local state immediately
-    setLeads(prevLeads => 
-      prevLeads.map(lead => 
-        lead.id === schedulingLead?.id 
-          ? {...lead, appointments: [...lead.appointments, newAppointment]} 
-          : lead
-      )
-    );
-    setShowScheduleSuccess(true);
-    setSchedulingLead(null);
-  };
-
-  const handleSuccessClose = () => {
-    setShowScheduleSuccess(false);
-    // Reopen the lead details with updated data
-    if (scheduledLeadId) {
-      const updatedLead = leads.find(lead => lead.id === scheduledLeadId);
-      if (updatedLead) {
-        setSelectedLead(updatedLead);
-      }
-    }
-    setScheduledLeadId(null);
-  };
-
-  const handleCancelSuccess = () => {
-    router.refresh();
-    // Update local state immediately
-    if (selectedLead) {
-      setLeads(prevLeads => 
-        prevLeads.map(lead => 
-          lead.id === selectedLead.id 
-            ? {...lead, appointments: []} 
-            : lead
-        )
-      );
-      const updatedLead = leads.find(lead => lead.id === selectedLead.id);
-      if (updatedLead) setSelectedLead(updatedLead);
-    }
-  };
-
-  const handleStatusChange = (leadId: string, newStatus: LeadStatus) => {
-    setLeads(prevLeads => 
-      prevLeads.map(lead => 
-        lead.id === leadId 
-          ? {...lead, status: newStatus} 
-          : lead
-      )
-    );
-    if (selectedLead?.id === leadId) {
-      setSelectedLead({...selectedLead, status: newStatus});
-    }
   };
 
   return (
@@ -198,33 +129,13 @@ export function LeadsTable({ leads: initialLeads }: { leads: LeadWithDetails[] }
         </Table>
       </div>
 
+      {/* UPDATE: The only dialog rendered here is the main details dialog. */}
       {selectedLead && (
         <LeadDetailsDialog
-          key={selectedLead.id}
-          lead={selectedLead}
+          // Use the latest data from the `leads` prop to prevent showing stale data
+          lead={leads.find(l => l.id === selectedLead.id) || selectedLead}
           isOpen={!!selectedLead}
           onClose={() => setSelectedLead(null)}
-          onScheduleClick={handleScheduleClick}
-          onCancelSuccess={handleCancelSuccess}
-          onStatusChange={handleStatusChange}
-        />
-      )}
-
-      {schedulingLead && (
-        <ScheduleAppointmentDialog
-          leadId={schedulingLead.id}
-          isOpen={!!schedulingLead}
-          onClose={() => setSchedulingLead(null)}
-          onSuccess={handleScheduleSuccess}
-        />
-      )}
-
-      {showScheduleSuccess && (
-        <SuccessDialog
-          isOpen={showScheduleSuccess}
-          onClose={handleSuccessClose}
-          title="Appointment Set!"
-          description="The new appointment has been successfully scheduled."
         />
       )}
     </>
