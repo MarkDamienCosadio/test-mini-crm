@@ -48,7 +48,7 @@ export async function addLead(prevState: FormState, formData: FormData): Promise
       }
       console.log(`Successfully added new lead ${newLead.id}.`);
     });
-    revalidatePath('/leads'); // Specific revalidation
+    revalidatePath('/'); // UPDATE: Corrected path based on your logs.
     return { message: 'Lead added successfully.' };
   } catch (e) {
     console.error('Failed to create lead:', e);
@@ -64,7 +64,7 @@ export async function updateLeadStatus(leadId: string, status: LeadStatus) {
       data: { status },
     });
     console.log(`Successfully updated status for lead ${leadId}.`);
-    revalidatePath('/leads'); // Specific revalidation
+    revalidatePath('/'); // UPDATE: Corrected path based on your logs.
     return { success: true };
   } catch (error) {
     console.error(`Failed to update status for lead ${leadId}:`, error);
@@ -82,7 +82,7 @@ export async function addNoteToLead(leadId: string, content: string) {
       data: { leadId, content },
     });
     console.log(`Successfully added note ${newNote.id} to lead ${leadId}.`);
-    revalidatePath('/leads'); // Specific revalidation
+    revalidatePath('/'); // UPDATE: Corrected path based on your logs.
     return newNote; 
   } catch (error) {
     console.error(`Database Error: Failed to add note for lead ${leadId}:`, error);
@@ -122,7 +122,7 @@ export async function createAppointment(prevState: AppointmentFormState, formDat
   try {
     const newAppointment = await prisma.appointment.create({ data: { title, startTime, endTime, leadId } });
     console.log(`Successfully created appointment ${newAppointment.id} for lead ${leadId}.`);
-    revalidatePath('/leads'); // Specific revalidation
+    revalidatePath('/'); // UPDATE: Corrected path based on your logs.
     return { message: 'Appointment created successfully.', appointment: newAppointment };
   } catch (error) {
     console.error(`Failed to create appointment for lead ${leadId}:`, error);
@@ -135,7 +135,7 @@ export async function cancelAppointments(leadId: string) {
   try {
     await prisma.appointment.deleteMany({ where: { leadId } });
     console.log(`Successfully canceled appointments for lead ${leadId}.`);
-    revalidatePath('/leads'); // Specific revalidation
+    revalidatePath('/'); // UPDATE: Corrected path based on your logs.
     return { success: true };
   } catch (error) {
     console.error(`Failed to cancel appointments for lead ${leadId}:`, error);
