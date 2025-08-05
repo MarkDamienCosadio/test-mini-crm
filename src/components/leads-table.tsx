@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Lead, Note, LeadStatus, Appointment } from '@prisma/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -16,15 +16,19 @@ type LeadWithDetails = Lead & {
 };
 
 export function LeadsTable({ leads }: { leads: LeadWithDetails[] }) {
-  // UPDATE: State management is now much simpler.
-  // We only need to know which lead is selected.
   const [selectedLead, setSelectedLead] = useState<LeadWithDetails | null>(null);
 
-  // Search and filter state remains the same.
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+useEffect(() => {
+  if (selectedLead) {
+    const freshLeadData = leads.find(lead => lead.id === selectedLead.id);
 
-  // Client-side filtering logic remains the same.
+    if (freshLeadData) {
+      setSelectedLead(freshLeadData);
+    }
+  }
+}, [leads]);
   const filteredLeads = useMemo(() => {
     return leads
       .filter(lead => {
