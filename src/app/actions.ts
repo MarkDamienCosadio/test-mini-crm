@@ -30,9 +30,11 @@ const LeadSchema = z.object({
 
 
 export async function addLead(prevState: FormState, formData: FormData): Promise<FormState> {
+  console.log('Attempting to add lead...');
   const validatedFields = LeadSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
+    console.error('Lead validation failed:', validatedFields.error.flatten().fieldErrors);
     return { message: 'Validation failed.', errors: validatedFields.error.flatten().fieldErrors };
   }
 
@@ -44,23 +46,28 @@ export async function addLead(prevState: FormState, formData: FormData): Promise
       if (note && note.trim().length > 0) {
         await tx.note.create({ data: { content: note, leadId: newLead.id } });
       }
+      console.log(`Successfully added new lead ${newLead.id}.`);
     });
-    revalidatePath('/');
+    revalidatePath('/leads'); // Specific revalidation
     return { message: 'Lead added successfully.' };
   } catch (e) {
+    console.error('Failed to create lead:', e);
     return { message: 'Database Error: Failed to create lead.' };
   }
 }
 
 export async function updateLeadStatus(leadId: string, status: LeadStatus) {
+  console.log(`Attempting to update status for lead ${leadId} to ${status}...`);
   try {
     await prisma.lead.update({
       where: { id: leadId },
       data: { status },
     });
-    revalidatePath('/');
+    console.log(`Successfully updated status for lead ${leadId}.`);
+    revalidatePath('/leads'); // Specific revalidation
     return { success: true };
   } catch (error) {
+    console.error(`Failed to update status for lead ${leadId}:`, error);
     return { success: false, message: 'Failed to update status.' };
   }
 }
@@ -69,13 +76,16 @@ export async function addNoteToLead(leadId: string, content: string) {
   if (!content || content.trim().length === 0) {
     throw new Error('Note content cannot be empty.');
   }
+  console.log(`Attempting to add note to lead ${leadId}...`);
   try {
     const newNote = await prisma.note.create({
       data: { leadId, content },
     });
-    revalidatePath('/');
-    return newNote; // Return the created note object
+    console.log(`Successfully added note ${newNote.id} to lead ${leadId}.`);
+    revalidatePath('/leads'); // Specific revalidation
+    return newNote; 
   } catch (error) {
+    console.error(`Database Error: Failed to add note for lead ${leadId}:`, error);
     throw new Error('Database Error: Failed to add note.');
   }
 }
@@ -87,7 +97,7 @@ export type AppointmentFormState = {
     startTime?: string[];
     duration?: string[];
   };
-  appointment?: Appointment; // Add this line
+  appointment?: Appointment; 
 };
 
 const AppointmentSchema = z.object({
@@ -98,28 +108,37 @@ const AppointmentSchema = z.object({
 });
 
 export async function createAppointment(prevState: AppointmentFormState, formData: FormData): Promise<AppointmentFormState> {
+  console.log('Attempting to create appointment...');
   const validatedFields = AppointmentSchema.safeParse(Object.fromEntries(formData.entries()));
+
   if (!validatedFields.success) {
+    console.error('Appointment validation failed:', validatedFields.error.flatten().fieldErrors);
     return { message: 'Validation failed.', errors: validatedFields.error.flatten().fieldErrors };
   }
+
   const { title, startTime, duration, leadId } = validatedFields.data;
   const endTime = new Date(startTime.getTime() + duration * 60000);
+
   try {
     const newAppointment = await prisma.appointment.create({ data: { title, startTime, endTime, leadId } });
-    revalidatePath('/');
-    // Return a success message AND the new appointment
+    console.log(`Successfully created appointment ${newAppointment.id} for lead ${leadId}.`);
+    revalidatePath('/leads'); // Specific revalidation
     return { message: 'Appointment created successfully.', appointment: newAppointment };
   } catch (error) {
+    console.error(`Failed to create appointment for lead ${leadId}:`, error);
     return { message: 'Database Error: Failed to create appointment.' };
   }
 }
 
 export async function cancelAppointments(leadId: string) {
+  console.log(`Attempting to cancel appointments for lead ${leadId}...`);
   try {
     await prisma.appointment.deleteMany({ where: { leadId } });
-    revalidatePath('/');
+    console.log(`Successfully canceled appointments for lead ${leadId}.`);
+    revalidatePath('/leads'); // Specific revalidation
     return { success: true };
   } catch (error) {
+    console.error(`Failed to cancel appointments for lead ${leadId}:`, error);
     return { success: false, message: 'Database error.' };
   }
 }
