@@ -97,19 +97,30 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
               </div>
             </div>
           </DialogHeader>
-          
+
           <div className="py-6 space-y-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Status</p>
-              {/* UPDATE: Use `isStatusPending` to disable the select dropdown during update. */}
-              <Select defaultValue={lead.status} onValueChange={handleStatusChange} disabled={isStatusPending}>
-                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.values(LeadStatus).map(status => (
-                    <SelectItem key={status} value={status}>{formatEnumText(status)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* UPDATE: Wrap the Select and the new feedback message in a flex container */}
+              <div className="flex items-center gap-4">
+                <Select defaultValue={lead.status} onValueChange={handleStatusChange} disabled={isStatusPending}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(LeadStatus).map(status => (
+                      <SelectItem key={status} value={status}>{formatEnumText(status)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* UPDATE: Conditionally render this message while the status is being saved */}
+                {isStatusPending && (
+                  <p className="text-sm text-muted-foreground animate-pulse">
+                    Saving...
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
