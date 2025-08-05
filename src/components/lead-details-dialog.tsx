@@ -16,7 +16,6 @@ type LeadWithDetails = Lead & {
   appointments: Appointment[];
 };
 
-// RESTORED: This helper component for displaying details.
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">
@@ -34,7 +33,12 @@ interface LeadDetailsDialogProps {
 
 export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  
+  // UPDATE: We now have a separate transition for each asynchronous action.
+  const [isStatusPending, startStatusTransition] = useTransition();
+  const [isNotePending, startNoteTransition] = useTransition();
+  const [isCancelPending, startCancelTransition] = useTransition();
+
   const [isScheduling, setIsScheduling] = useState(false);
   const [noteContent, setNoteContent] = useState('');
 
@@ -46,9 +50,9 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
     router.refresh();
   };
   
-  // RESTORED: Handler for changing the lead status.
   const handleStatusChange = (status: LeadStatus) => {
-    startTransition(() => {
+    // UPDATE: Use the dedicated transition for status changes.
+    startStatusTransition(() => {
       updateLeadStatus(lead.id, status).then(() => {
         toast.success("Status updated.");
         router.refresh();
@@ -58,7 +62,8 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
 
   const handleAddNote = () => {
     if (!noteContent.trim()) return;
-    startTransition(() => {
+    // UPDATE: Use the dedicated transition for adding a note.
+    startNoteTransition(() => {
         addNoteToLead(lead.id, noteContent).then(() => {
             setNoteContent('');
             toast.success("Note added successfully.");
@@ -68,14 +73,14 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
   };
   
   const handleCancelAppointment = async () => {
-    startTransition(async () => {
+    // UPDATE: Use the dedicated transition for cancellation.
+    startCancelTransition(async () => {
       await cancelAppointments(lead.id); 
       toast.success("Appointment Canceled");
       router.refresh();
     });
   };
 
-  // RESTORED: Helper function for formatting enum text.
   const formatEnumText = (text: string = ''): string => {
     return text.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ');
   };
@@ -93,11 +98,11 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
             </div>
           </DialogHeader>
           
-          {/* --- RESTORED SECTIONS --- */}
           <div className="py-6 space-y-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Status</p>
-              <Select defaultValue={lead.status} onValueChange={handleStatusChange} disabled={isPending}>
+              {/* UPDATE: Use `isStatusPending` to disable the select dropdown during update. */}
+              <Select defaultValue={lead.status} onValueChange={handleStatusChange} disabled={isStatusPending}>
                 <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.values(LeadStatus).map(status => (
@@ -113,7 +118,6 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
               <DetailItem label="Transaction" value={formatEnumText(lead.transaction)} />
             </div>
           </div>
-          {/* --- END RESTORED SECTIONS --- */}
 
 
           <div className="pt-4 border-t">
@@ -133,8 +137,9 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
                         {new Date(appointment.startTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
                     </div>
-                    <Button variant="destructive" size="sm" onClick={handleCancelAppointment} disabled={isPending}>
-                      {isPending ? 'Canceling...' : 'Cancel'}
+                    {/* UPDATE: Use `isCancelPending` for the cancel button's state. */}
+                    <Button variant="destructive" size="sm" onClick={handleCancelAppointment} disabled={isCancelPending}>
+                      {isCancelPending ? 'Canceling...' : 'Cancel'}
                     </Button>
                   </div>
                 ))
@@ -151,10 +156,11 @@ export function LeadDetailsDialog({ lead, isOpen, onClose }: LeadDetailsDialogPr
                 placeholder="Add a new note..."
                 value={noteContent}
                 onChange={(e) => setNoteContent(e.target.value)}
-                disabled={isPending}
+                disabled={isNotePending}
               />
-              <Button onClick={handleAddNote} disabled={isPending || !noteContent.trim()}>
-                {isPending ? 'Adding...' : 'Add Note'}
+              {/* UPDATE: Use `isNotePending` for the add note button's state. */}
+              <Button onClick={handleAddNote} disabled={isNotePending || !noteContent.trim()}>
+                {isNotePending ? 'Adding...' : 'Add Note'}
               </Button>
             </div>
             <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
